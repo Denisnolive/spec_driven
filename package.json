@@ -1,0 +1,31 @@
+{
+  "name": "ops-pilot",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "arena": "tsx src/arena.ts",
+    "bench": "tsx src/bench.ts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@langchain/core": "latest",
+    "@langchain/langgraph": "latest",
+    "@langchain/openai": "latest",
+    "express": "latest",
+    "mysql2": "latest",
+    "sequelize": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/express": "latest",
+    "@types/node": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

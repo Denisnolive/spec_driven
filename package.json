@@ -4,28 +4,40 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "arena": "tsx src/arena.ts",
-    "bench": "tsx src/bench.ts",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "mcp": "node --env-file=.env --import tsx src/mcp/server.ts",
+    "dev": "node --env-file=.env --import tsx src/index.ts",
+    "arena": "node --env-file=.env --import tsx src/arena.ts",
+    "bench": "node --env-file=.env --import tsx src/bench.ts",
+    "seed": "node --env-file=.env --import tsx src/seed.ts",
+    "test": "node --env-file=.env --import tsx --test src/store/sqlite-ops-store.test.ts src/store/sqlite-conversation-store.test.ts src/store/sqlite-trace-store.test.ts src/obs/logger.test.ts src/memory/memory-store.test.ts src/memory/reflector.test.ts src/context/tokens.test.ts src/context/summarizer.test.ts src/context/context-builder.test.ts src/agents/tools.test.ts src/agents/types.test.ts src/agents/model.test.ts src/graph/production-graph.test.ts src/http/server.test.ts",
+    "typecheck": "tsc --noEmit",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "web:typecheck": "npm --prefix web run typecheck"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@langchain/core": "latest",
     "@langchain/langgraph": "latest",
     "@langchain/openai": "latest",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "better-sqlite3": "latest",
     "express": "latest",
     "mysql2": "latest",
     "sequelize": "latest",
+    "sqlite3": "^6.0.1",
     "zod": "latest"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/express": "latest",
     "@types/node": "latest",
     "tsx": "latest",
     "typescript": "latest"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "better-sqlite3@13.0.3": true,
+    "sqlite3@6.0.1": true
   }
 }

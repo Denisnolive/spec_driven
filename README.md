@@ -39,7 +39,7 @@ O sistema orquestra fluxos de resolução de incidentes, análise de logs, diagn
 ops-pilot/
 ├── .github/
 │   └── workflows/
-│       └── deploy-pages.yml    # Pipeline de CI/CD para GitHub Pages
+│       └── deploy.yml    # Pipeline de CI/CD para GitHub Pages
 ├── src/
 │   ├── agents/                 # Implementações de agentes ReAct, Plan-and-Execute e tools
 │   ├── graph/                  # Grafos de estados compilados com LangGraph
@@ -109,7 +109,7 @@ O frontend do OpsPilot possui esteira de deploy totalmente automatizada no **Git
 
 ### Workflow do GitHub Actions
 
-O arquivo [.github/workflows/deploy-pages.yml](file:///.github/workflows/deploy-pages.yml) realiza:
+O arquivo [.github/workflows/deploy.yml](file:///.github/workflows/deploy.yml) realiza:
 1. **Gatilhos**: Disparado automaticamente em cada `push` para a branch `main` com alterações em `web/**` ou `.github/workflows/**`, ou manualmente via `workflow_dispatch`.
 2. **Segurança (Least Privilege)**:
    ```yaml

@@ -10,6 +10,10 @@ export interface TraceEventRecord {
   payload: unknown;
   timestampMs: number;
   createdAt?: string;
+  from?: string;
+  to?: string;
+  brief?: string;
+  iteration?: number;
 }
 
 export interface RequestRecord {

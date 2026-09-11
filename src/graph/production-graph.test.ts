@@ -281,11 +281,50 @@ describe('Grafo Unificado de Produção (Production Graph)', () => {
       assert.ok(result.metrics.contextBreakdown, 'contextBreakdown deve estar presente nas métricas');
     });
 
-    test('SYSTEM_PROMPT contém a tabela de critérios operacionais', () => {
+    test('SYSTEM_PROMPT contém a tabela de critérios operacionais incluindo team', () => {
       assert.ok(SYSTEM_PROMPT.includes('| Estratégia | Quando Usar | Critérios e Exemplos |'));
       assert.ok(SYSTEM_PROMPT.includes('| react |'));
       assert.ok(SYSTEM_PROMPT.includes('| planExecute |'));
       assert.ok(SYSTEM_PROMPT.includes('| reflect |'));
+      assert.ok(SYSTEM_PROMPT.includes('| team |'));
+    });
+
+    test('roteia para "team" quando selecionado pelo modelo ou via override', async () => {
+      const mockModel = createMockRouterModel({
+        route: 'team',
+        reason: 'Incidente complexo de checkout',
+      });
+
+      const mockTeam = createMockStrategy('team', 'Incidente mitigado pela equipe', [
+        {
+          kind: 'handoff',
+          from: 'supervisor',
+          to: 'analista',
+          brief: 'Investigue o checkout',
+          iteration: 1,
+          content: 'Handoff para analista',
+          timestampMs: Date.now(),
+        },
+      ]);
+
+      const result = await runProductionGraph(
+        {
+          message: 'Trate o incidente no checkout com a equipe',
+          strategyOverride: 'team',
+        },
+        {
+          model: mockModel,
+          teamStrategy: mockTeam,
+        }
+      );
+
+      assert.equal(result.route, 'team');
+      assert.equal(result.isOverride, true);
+      assert.equal(result.answer, 'Incidente mitigado pela equipe');
+
+      const handoff = result.trace.find((e) => e.kind === 'handoff');
+      assert.ok(handoff, 'Deve propagar o evento handoff');
+      assert.equal(handoff?.to, 'analista');
     });
   });
 });

@@ -284,6 +284,7 @@ export function createServer(options: ServerOptions = {}) {
           : registry.get('react')),
       planExecuteStrategy: registry.get('plan-and-execute', { reflect }),
       reflectStrategy: registry.get('react', { reflect: true }) ?? registry.get('reflection'),
+      teamStrategy: registry.get('team'),
     });
 
     try {

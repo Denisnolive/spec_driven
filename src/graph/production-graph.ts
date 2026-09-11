@@ -4,6 +4,7 @@ import { createModel, getModelContext } from '../agents/model.js';
 import { ReActStrategy } from '../agents/react.js';
 import { PlanAndExecuteStrategy } from '../agents/plan-and-execute.js';
 import { ReflectionStrategy } from '../agents/reflection.js';
+import { TeamStrategy } from '../team/index.js';
 import type { ReasoningStrategy, StrategyResult, TraceEvent, Metrics, StrategyInput } from '../agents/types.js';
 import { ContextBuilder, type BuiltContext } from '../context/context-builder.js';
 import type { ConversationStore } from '../store/conversation-store.js';
@@ -23,13 +24,14 @@ Avalie o pedido estritamente com base na seguinte tabela de critérios:
 | react | Tarefas diretas, perguntas simples, inspeção pontual de status de serviço ou listagem de alertas. Baixa latência e poucas ferramentas. | "Qual o status do auth?", "Liste os alertas ativos", "Quais serviços estão instáveis?" |
 | planExecute | Tarefas complexas com múltiplos passos dependentes, triagem encadeada, consultas a runbooks seguidas de abertura de incidentes. | "Verifique o gateway, consulte seu runbook e abra incidente se instável", "Audite os serviços e planeje ações" |
 | reflect | Análises críticas de causa raiz (RCA), auditorias de fidelidade factual, validação estrita de evidências operacionais contra alucinações. | "Faça uma análise crítica das causas da lentidão no banco", "Valide se a evidência sustenta essa conclusão" |
+| team | Incidentes operacionais complexos, triagens multifuncionais de ponta a ponta que exigem diagnóstico analítico, plano tático e intervenções de incidentes. | "Investigue a falha no checkout, elabore o plano e trate o incidente com a equipe", "Atue no incidente do gateway em modo equipe" |
 
-Retorne a rota selecionada ("react", "planExecute" ou "reflect") e uma frase justificando a escolha.`;
+Retorne a rota selecionada ("react", "planExecute", "reflect" ou "team") e uma frase justificando a escolha.`;
 
 // ─── Schema de Roteamento ─────────────────────────────────────────────────────
 
 export const routeSchema = z.object({
-  route: z.enum(['react', 'planExecute', 'reflect']),
+  route: z.enum(['react', 'planExecute', 'reflect', 'team']),
   reason: z.string().describe('uma frase justificando a escolha'),
 });
 
@@ -81,7 +83,7 @@ export const GraphState = Annotation.Root({
     reducer: (_, b) => b,
     default: () => undefined,
   }),
-  route: Annotation<'react' | 'planExecute' | 'reflect'>({
+  route: Annotation<'react' | 'planExecute' | 'reflect' | 'team'>({
     reducer: (_, b) => b,
     default: () => 'react',
   }),
@@ -115,12 +117,13 @@ export type ProductionGraphState = typeof GraphState.State;
 
 // ─── Normalizador de Estratégia / Override ────────────────────────────────────
 
-export function normalizeRoute(raw?: string): 'react' | 'planExecute' | 'reflect' | undefined {
+export function normalizeRoute(raw?: string): 'react' | 'planExecute' | 'reflect' | 'team' | undefined {
   if (!raw) return undefined;
   const val = raw.trim().toLowerCase();
   if (val === 'react') return 'react';
   if (val === 'planexecute' || val === 'plan-and-execute') return 'planExecute';
   if (val === 'reflect' || val === 'reflection') return 'reflect';
+  if (val === 'team' || val === 'equipe' || val === 'modo-equipe') return 'team';
   return undefined;
 }
 
@@ -136,6 +139,7 @@ export interface ProductionGraphOptions {
   reactStrategy?: ReasoningStrategy;
   planExecuteStrategy?: ReasoningStrategy;
   reflectStrategy?: ReasoningStrategy;
+  teamStrategy?: ReasoningStrategy;
 }
 
 // ─── Factory do Grafo Unificado ───────────────────────────────────────────────
@@ -147,6 +151,7 @@ export function createProductionGraph(options: ProductionGraphOptions = {}) {
   const planExecuteStrategy = options.planExecuteStrategy ?? new PlanAndExecuteStrategy();
   const reflectStrategy =
     options.reflectStrategy ?? new ReflectionStrategy(new ReActStrategy());
+  const teamStrategy = options.teamStrategy ?? new TeamStrategy();
   const traceStore = options.traceStore;
   const logger = options.logger ?? log;
 
@@ -378,6 +383,32 @@ export function createProductionGraph(options: ProductionGraphOptions = {}) {
     };
   }
 
+  // ── Nó 5.1: Team (Modo Equipe Supervisionada) ──────────────────────────────
+  async function teamNode(state: ProductionGraphState): Promise<Partial<ProductionGraphState>> {
+    const modelCtx = getModelContext();
+    if (modelCtx) modelCtx.currentNode = 'team';
+
+    const inputPayload: StrategyInput = {
+      message: state.builtContext?.promptMessage || state.message || state.input,
+      history: state.builtContext?.history ?? state.history,
+      builtContext: state.builtContext,
+    };
+
+    const result = await teamStrategy.run(inputPayload);
+    const mappedTrace = tagTraceWithNode(result.trace, 'team');
+
+    return {
+      answer: result.answer,
+      trace: mappedTrace,
+      metrics: {
+        ...result.metrics,
+        llmCalls: (state.metrics?.llmCalls ?? 0) + (result.metrics?.llmCalls ?? 0),
+        latencyMs: (state.metrics?.latencyMs ?? 0) + (result.metrics?.latencyMs ?? 0),
+        modelUsed: result.metrics?.modelUsed ?? modelCtx?.modelUsed,
+      },
+    };
+  }
+
   // ── Nó 6: Resposta ──────────────────────────────────────────────────────────
   async function answerNode(state: ProductionGraphState): Promise<Partial<ProductionGraphState>> {
     const answer = state.answer;
@@ -481,6 +512,7 @@ export function createProductionGraph(options: ProductionGraphOptions = {}) {
     .addNode('react', reactNode)
     .addNode('planExecute', planExecuteNode)
     .addNode('reflect', reflectNode)
+    .addNode('team', teamNode)
     .addNode('resposta', answerNode)
     .addEdge(START, 'contexto')
     .addEdge('contexto', 'roteador')
@@ -488,10 +520,12 @@ export function createProductionGraph(options: ProductionGraphOptions = {}) {
       react: 'react',
       planExecute: 'planExecute',
       reflect: 'reflect',
+      team: 'team',
     })
     .addEdge('react', 'resposta')
     .addEdge('planExecute', 'resposta')
     .addEdge('reflect', 'resposta')
+    .addEdge('team', 'resposta')
     .addEdge('resposta', END)
     .compile();
 
@@ -516,7 +550,7 @@ export async function runProductionGraph(
   options: ProductionGraphOptions = {}
 ): Promise<{
   answer: string;
-  route: 'react' | 'planExecute' | 'reflect';
+  route: 'react' | 'planExecute' | 'reflect' | 'team';
   reason: string;
   isOverride: boolean;
   trace: TraceEvent[];

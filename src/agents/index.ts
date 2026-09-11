@@ -3,6 +3,7 @@ import { ReActStrategy } from './react.js';
 import { PlanAndExecuteStrategy } from './plan-and-execute.js';
 import { withReflection } from './reflection.js';
 import type { ReflectionOptions } from './reflection.js';
+import { TeamStrategy } from '../team/index.js';
 
 export * from './types.js';
 export * from './model.js';
@@ -11,6 +12,7 @@ export * from './react.js';
 export * from './plan-and-execute.js';
 export * from './reflection.js';
 export * from './production-graph.js';
+export * from '../team/index.js';
 
 
 // ─── Strategy Registry ────────────────────────────────────────────────────────
@@ -71,6 +73,7 @@ export class StrategyRegistry {
 export const defaultStrategyRegistry = new StrategyRegistry({
   react: () => new ReActStrategy(),
   'plan-and-execute': () => new PlanAndExecuteStrategy(),
+  team: () => new TeamStrategy(),
 });
 
 export function getStrategy(

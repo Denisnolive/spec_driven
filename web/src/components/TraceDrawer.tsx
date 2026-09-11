@@ -143,7 +143,7 @@ export const TraceDrawer: React.FC<TraceDrawerProps> = ({
                         <span className={`trace-node-badge node-${nodeName}`}>
                           {nodeName.toUpperCase()}
                         </span>
-                        <span className="trace-kind-badge">{kind}</span>
+                        <span className={`trace-kind-badge kind-${kind}`}>{kind.toUpperCase()}</span>
                         {evt.timestampMs && (
                           <span className="trace-step-time">
                             +{evt.timestampMs}ms
@@ -152,7 +152,33 @@ export const TraceDrawer: React.FC<TraceDrawerProps> = ({
                       </div>
 
                       <div className="trace-step-payload">
-                        {typeof evt.payload === 'string' ? (
+                        {kind === 'handoff' ? (
+                          (() => {
+                            const payloadObj = typeof evt.payload === 'object' && evt.payload !== null ? (evt.payload as any) : {};
+                            const handoffFrom = evt.from || payloadObj.from || 'supervisor';
+                            const handoffTo = evt.to || payloadObj.to || 'especialista';
+                            const handoffBrief = evt.brief || payloadObj.brief || (typeof evt.payload === 'string' ? evt.payload : '');
+                            const iteration = evt.iteration || payloadObj.iteration;
+
+                            return (
+                              <div className="trace-handoff-card">
+                                <div className="trace-handoff-route">
+                                  <span className="handoff-origin">{handoffFrom.toUpperCase()}</span>
+                                  <span className="handoff-arrow">➔</span>
+                                  <span className="handoff-target">{handoffTo.toUpperCase()}</span>
+                                  {iteration !== undefined && (
+                                    <span className="handoff-turn-pill">Turno {iteration}/8</span>
+                                  )}
+                                </div>
+                                {handoffBrief && (
+                                  <div className="trace-handoff-brief">
+                                    <span className="handoff-brief-label">Diretriz:</span> {handoffBrief}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()
+                        ) : typeof evt.payload === 'string' ? (
                           <div className="trace-text-payload">{evt.payload}</div>
                         ) : (
                           <details className="trace-details" open={idx === 0 || idx === trace.length - 1}>

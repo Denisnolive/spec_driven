@@ -1048,10 +1048,90 @@ button:disabled {
 .node-tools { background-color: var(--color-warning-subtle); color: var(--color-warning); }
 .node-agent { background-color: var(--color-primary-subtle); color: var(--color-primary); }
 .node-reflect { background-color: var(--color-success-subtle); color: var(--color-success); }
+.node-team { background-color: #f3e8ff; color: #7e22ce; }
+.node-supervisor { background-color: #ede9fe; color: #6d28d9; }
+.node-analista { background-color: #e0f2fe; color: #0369a1; }
+.node-planejador { background-color: #fef3c7; color: #b45309; }
+.node-executor { background-color: #fee2e2; color: #b91c1c; }
+.node-done { background-color: #dcfce7; color: #15803d; }
 
 .trace-kind-badge {
   color: var(--text-muted);
   font-family: var(--font-mono);
+}
+
+.trace-kind-badge.kind-handoff {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(124, 58, 237, 0.3);
+}
+
+/* ─── Cartão de Handoff (Transição de Equipe) ────────────────────────────── */
+.trace-handoff-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background-color: var(--bg-surface);
+  border: 1px solid #c4b5fd;
+  border-left: 4px solid #7c3aed;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.trace-handoff-route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.handoff-origin {
+  background-color: #ede9fe;
+  color: #6d28d9;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.handoff-arrow {
+  color: #7c3aed;
+  font-size: 0.9rem;
+}
+
+.handoff-target {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.handoff-turn-pill {
+  margin-left: auto;
+  font-size: 0.7rem;
+  background-color: var(--bg-surface-raised);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+}
+
+.trace-handoff-brief {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+  background-color: var(--bg-surface-raised);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.handoff-brief-label {
+  font-weight: 700;
+  color: #7c3aed;
 }
 
 .trace-step-time {

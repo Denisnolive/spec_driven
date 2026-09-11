@@ -8,7 +8,8 @@ export type TraceEventKind =
   | 'critique'
   | 'answer'
   | 'route'
-  | 'fallback';
+  | 'fallback'
+  | 'handoff';
 
 /** Payload exclusivo para eventos do kind 'action' */
 export interface ActionPayload {
@@ -19,9 +20,9 @@ export interface ActionPayload {
 /** Um evento tipado no trace de raciocínio */
 export interface TraceEvent {
   kind: TraceEventKind;
-  /** Alias opcional para compatibilidade (ex: type: 'route') */
+  /** Alias opcional para compatibilidade (ex: type: 'route', type: 'handoff') */
   type?: string;
-  /** String para thought/observation/plan/critique/answer/route/fallback; ActionPayload para action */
+  /** String para thought/observation/plan/critique/answer/route/fallback/handoff; ActionPayload para action */
   content: string | ActionPayload;
   timestampMs: number;
   /** Identificador canônico do nó do grafo que emitiu o evento */
@@ -36,6 +37,14 @@ export interface TraceEvent {
   toModel?: string;
   /** Detalhe do erro que disparou o fallback */
   error?: string;
+  /** Origem do handoff (ex: 'supervisor', 'analista') */
+  from?: string;
+  /** Destino do handoff (ex: 'analista', 'planejador', 'executor', 'done') */
+  to?: string;
+  /** Instrução ou síntese do handoff */
+  brief?: string;
+  /** Contagem de turno/iteração da equipe */
+  iteration?: number;
 }
 
 

@@ -61,7 +61,7 @@ ops-pilot/
 
 A aplicação frontend está localizada no diretório `web/` e foi projetada para atuar como central de operações de incidentes:
 
-- **Base Path**: Configurado com `base: '/opspilot/'` em `web/vite.config.ts`, permitindo execução em subdiretórios tanto localmente quanto no GitHub Pages (`https://<usuario>.github.io/opspilot/`).
+- **Base Path**: Configurado com `base: '/spec_driven/'` em `web/vite.config.ts`, permitindo execução em subdiretórios tanto localmente quanto no GitHub Pages (`https://<usuario>.github.io/spec_driven/`).
 - **Configuração Dinâmica da API (Ícone de Engrenagem)**: No topo da interface, clique no botão ⚙️ para abrir o modal de configurações e apontar a URL do backend Express (ex.: `http://localhost:3000` ou endpoint em nuvem). A URL é armazenada no `localStorage` do navegador.
 - **Painel de Raciocínio ("Ver raciocínio")**: Acordeão interativo que detalha cada etapa do ciclo de raciocínio do modelo de linguagem.
 - **Aprovação Interativa de Ações**: Cartões dedicados para comandos pendentes de aprovação humana, com botões para **Aprovar** ou **Rejeitar**.
@@ -98,7 +98,7 @@ A aplicação frontend está localizada no diretório `web/` e foi projetada par
    ```bash
    npm run web:dev
    ```
-   *A interface estará acessível em `http://localhost:5173/opspilot/`.*
+   *A interface estará acessível em `http://localhost:5173/spec_driven/`.*
 2. Abra a interface no navegador e verifique a URL da API no modal de configurações (ícone de engrenagem ⚙️).
 
 ---
@@ -133,7 +133,7 @@ Para habilitar a publicação automática:
 2. Na seção **Build and deployment**, em **Source**, selecione **GitHub Actions**.
 3. Ao realizar um push na branch `main`, a ação compilará e publicará a War Room na URL:
    ```text
-   https://<seu-usuario-ou-org>.github.io/opspilot/
+   https://<seu-usuario-ou-org>.github.io/spec_driven/
    ```
 4. Ao abrir a página pela primeira vez no GitHub Pages, clique na engrenagem ⚙️ e configure a URL do seu servidor backend (ou utilize um túnel como `ngrok` ou serviço na nuvem).
 

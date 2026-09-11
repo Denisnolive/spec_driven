@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sqliteStore } from '../store/sqlite-ops-store.js';
 import type { OpsStore } from '../store/ops-store.js';
 import { sqliteMemoryStore, type MemoryStore } from '../memory/memory-store.js';
+import { formatOpenIncidentsReport } from '../services/incident-reporter.js';
 
 let activeStore: OpsStore = sqliteStore;
 let activeMemoryStore: MemoryStore = sqliteMemoryStore;
@@ -103,7 +104,14 @@ export const listIncidentsSchema = z.object({
     .enum(['open', 'resolved', 'all'])
     .default('open')
     .describe("Filtro de status dos incidentes: 'open' para incidentes ativos em andamento, 'resolved' para incidentes finalizados ou 'all' para todos os incidentes registrados"),
+  format: z
+    .enum(['json', 'report'])
+    .optional()
+    .default('json')
+    .describe("Formato de saída: 'json' (padrão) para lista crua de dados ou 'report' para relatório estruturado em blocos de texto sem tabelas"),
 });
+
+export const getOpenIncidentsReportSchema = z.object({});
 
 export const consultarRunbookSchema = z.object({
   service: z
@@ -208,15 +216,37 @@ export function createOpsTools(
   );
 
   const listIncidentsTool = tool(
-    async ({ status }) => JSON.stringify(await storeInstance.listIncidents(status)),
+    async ({ status, format }) => {
+      const incidents = await storeInstance.listIncidents(status);
+      if (format === 'report') {
+        return formatOpenIncidentsReport(incidents).markdown;
+      }
+      return JSON.stringify(incidents);
+    },
     {
       name: 'list_incidents',
       description:
         'Lista os incidentes operacionais registrados no sistema, permitindo filtrar pelo status. ' +
         'Use quando o operador perguntar sobre incidentes abertos, chamados em andamento, histórico de incidentes ou status geral de atendimento operacional. ' +
+        'Use format="report" para retornar o relatório legível em blocos de texto sem tabelas markdown. ' +
         'Não use para listar alertas de monitoramento não triados (use list_alerts). ' +
-        "Retorna uma lista JSON de incidentes com id, título, serviço, severidade, status ('open'/'resolved'), timestamps e sumário.",
+        "Retorna uma lista JSON de incidentes ou relatório formatado em blocos quando format='report'.",
       schema: listIncidentsSchema,
+    }
+  );
+
+  const getOpenIncidentsReportTool = tool(
+    async () => {
+      const incidents = await storeInstance.listIncidents('open');
+      return formatOpenIncidentsReport(incidents).markdown;
+    },
+    {
+      name: 'get_open_incidents_report',
+      description:
+        'Gera o Relatório Oficial de Incidentes Abertos em produção no formato padronizado de blocos de texto sem tabelas markdown. ' +
+        'Contém cabeçalho quantitativo (Total, Critical, High, Medium, Low), incidentes ordenados por severidade e data decrescente, ' +
+        'sinalização de duplicidades de sintomas e seção de Ação Imediata.',
+      schema: getOpenIncidentsReportSchema,
     }
   );
 
@@ -316,6 +346,7 @@ export function createOpsTools(
     openIncident: openIncidentTool,
     resolveIncident: resolveIncidentTool,
     listIncidents: listIncidentsTool,
+    getOpenIncidentsReport: getOpenIncidentsReportTool,
     consultarRunbook: consultarRunbookTool,
     checkProviderStatus: checkProviderStatusTool,
     forgetPreference: forgetPreferenceTool,
@@ -324,6 +355,7 @@ export function createOpsTools(
       openIncidentTool,
       resolveIncidentTool,
       listIncidentsTool,
+      getOpenIncidentsReportTool,
       consultarRunbookTool,
       checkProviderStatusTool,
       forgetPreferenceTool,
@@ -374,15 +406,37 @@ export const resolveIncident = tool(
 );
 
 export const listIncidents = tool(
-  async ({ status }) => JSON.stringify(await activeStore.listIncidents(status)),
+  async ({ status, format }) => {
+    const incidents = await activeStore.listIncidents(status);
+    if (format === 'report') {
+      return formatOpenIncidentsReport(incidents).markdown;
+    }
+    return JSON.stringify(incidents);
+  },
   {
     name: 'list_incidents',
     description:
       'Lista os incidentes operacionais registrados no sistema, permitindo filtrar pelo status. ' +
       'Use quando o operador perguntar sobre incidentes abertos, chamados em andamento, histórico de incidentes ou status geral de atendimento operacional. ' +
+      'Use format="report" para retornar o relatório oficial legível em blocos de texto sem tabelas. ' +
       'Não use para listar alertas de monitoramento não triados (use list_alerts). ' +
-      "Retorna uma lista JSON de incidentes com id, título, serviço, severidade, status ('open'/'resolved'), timestamps e sumário.",
+      "Retorna uma lista JSON de incidentes ou relatório estruturado em blocos quando format='report'.",
     schema: listIncidentsSchema,
+  }
+);
+
+export const getOpenIncidentsReport = tool(
+  async () => {
+    const incidents = await activeStore.listIncidents('open');
+    return formatOpenIncidentsReport(incidents).markdown;
+  },
+  {
+    name: 'get_open_incidents_report',
+    description:
+      'Gera o Relatório Oficial de Incidentes Abertos em produção no formato padronizado de blocos de texto sem tabelas markdown. ' +
+      'Contém cabeçalho quantitativo (Total, Critical, High, Medium, Low), incidentes ordenados por severidade e data decrescente, ' +
+      'sinalização de duplicidades de sintomas e seção de Ação Imediata.',
+    schema: getOpenIncidentsReportSchema,
   }
 );
 
@@ -496,6 +550,7 @@ export const opsTools = [
   openIncident,
   resolveIncident,
   listIncidents,
+  getOpenIncidentsReport,
   consultarRunbook,
   checkProviderStatus,
   forgetPreference,
@@ -508,6 +563,7 @@ export type ToolName =
   | 'open_incident'
   | 'resolve_incident'
   | 'list_incidents'
+  | 'get_open_incidents_report'
   | 'consultar_runbook'
   | 'check_provider_status'
   | 'forget_preference';

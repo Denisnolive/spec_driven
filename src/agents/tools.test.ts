@@ -14,6 +14,7 @@ describe('OpsPilot Tools (SQLite :memory:)', () => {
   let openIncident: ReturnType<typeof createOpsTools>['openIncident'];
   let resolveIncident: ReturnType<typeof createOpsTools>['resolveIncident'];
   let listIncidents: ReturnType<typeof createOpsTools>['listIncidents'];
+  let getOpenIncidentsReport: ReturnType<typeof createOpsTools>['getOpenIncidentsReport'];
   let consultarRunbook: ReturnType<typeof createOpsTools>['consultarRunbook'];
 
   beforeEach(async () => {
@@ -26,6 +27,7 @@ describe('OpsPilot Tools (SQLite :memory:)', () => {
     openIncident = toolsBundle.openIncident;
     resolveIncident = toolsBundle.resolveIncident;
     listIncidents = toolsBundle.listIncidents;
+    getOpenIncidentsReport = toolsBundle.getOpenIncidentsReport;
     consultarRunbook = toolsBundle.consultarRunbook;
   });
 
@@ -154,6 +156,39 @@ describe('OpsPilot Tools (SQLite :memory:)', () => {
 
       const allList = JSON.parse(await listIncidents.invoke({ status: 'all' }));
       assert.equal(allList.length, 2);
+    });
+
+    test('retorna relatório formatado em blocos quando format=report', async () => {
+      await openIncident.invoke({
+        title: 'Queda crítica no checkout',
+        service: 'checkout',
+        severity: 'critical',
+      });
+
+      const report = await listIncidents.invoke({ status: 'open', format: 'report' });
+      assert.ok(typeof report === 'string');
+      assert.ok(report.includes('## Incidentes abertos em produção'));
+      assert.ok(report.includes('🔴 **#1 · CRITICAL** — checkout'));
+      assert.ok(!report.includes('| --- |'), 'Não deve conter tabelas markdown');
+    });
+  });
+
+  // ─── get_open_incidents_report ──────────────────────────────────────────────
+
+  describe('get_open_incidents_report', () => {
+    test('gera relatório em blocos sem tabelas diretamente', async () => {
+      await openIncident.invoke({
+        title: 'Alta latência no gateway',
+        service: 'api-gateway',
+        severity: 'high',
+      });
+
+      const report = await getOpenIncidentsReport.invoke({});
+      assert.ok(typeof report === 'string');
+      assert.ok(report.includes('## Incidentes abertos em produção'));
+      assert.ok(report.includes('🟠 **#1 · HIGH** — api-gateway'));
+      assert.ok(report.includes('### Ação imediata'));
+      assert.ok(!report.includes('| --- |'));
     });
   });
 

@@ -1,13 +1,11 @@
 <!--
 Sync Impact Report
-- Version change: TEMPLATE → 1.0.0
-- Modified principles: N/A (initial ratification)
-- Added sections: Core Principles (I–VI), Stack & Padrões Técnicos, Fluxo de Desenvolvimento (Spec Kit), Governance
+- Version change: 1.1.0 → 1.2.0
+- Modified principles: III (Arquitetura em Camadas) e Stack & Padrões Técnicos (substituição de MySQL/Sequelize por SQLite nativo via node:sqlite DatabaseSync)
+- Added sections: none
 - Removed sections: none
-- Templates requiring updates: .specify/templates/plan-template.md (⚠ pending manual check),
-  .specify/templates/spec-template.md (⚠ pending manual check),
-  .specify/templates/tasks-template.md (⚠ pending manual check)
-- Follow-up TODOs: TODO(RATIFICATION_DATE) — data de adoção original desconhecida
+- Templates requiring updates: none
+- Follow-up TODOs: none
 -->
 
 # OpsPilot Constitution
@@ -23,15 +21,19 @@ mantêm o projeto alinhado com o ecossistema Node moderno.
 
 ### II. Validação na Fronteira (Zod)
 Toda entrada externa — HTTP (Express), CLI, ou payload de agente — MUST ser validada por um
-schema Zod antes de entrar na camada de serviço. Nenhuma lógica de negócio confia em dados
-não validados. **Racional**: centralizar validação na borda evita repetição de checagens e
-torna os contratos de dados explícitos e testáveis.
+schema Zod antes de entrar na camada de serviço. Saídas expostas ao cliente também são
+tipadas com Zod. Nenhuma lógica de negócio confia em dados não validados.
+**Racional**: centralizar validação na borda evita repetição de checagens e torna os
+contratos de dados explícitos e testáveis.
 
 ### III. Arquitetura em Camadas (MVC)
-O código MUST seguir a separação `model/`, `service/`, `controller/`. Controllers apenas
-conectam Express + validação Zod de entrada e delegam para services; services concentram
-lógica de negócio; models definem tipos/schemas e acesso a dados. **Racional**: separação
-clara de responsabilidades facilita testes isolados e evolução independente das camadas.
+O código MUST seguir a separação `model/`, `service/`, `controller/` ou `store/`, `service/`, `controller/`.
+Dependências fluem `http/cli → controller → service → model → store`. Controllers apenas conectam
+Express + validação Zod de entrada e delegam para services; services concentram lógica de negócio pura;
+stores implementam interfaces de persistência tipadas (`OpsStore`) utilizando SQLite nativo (`node:sqlite` / `DatabaseSync`)
+com prepared statements sem SQL concatenado. Domínio não faz IO direto sem passar por contratos da store.
+**Racional**: separação clara de responsabilidades facilita testes isolados, permite alternar entre store em
+arquivo ou em memória (`:memory:`) e simplifica a evolução independente das camadas sem dependência de serviços externos de banco.
 
 ### IV. Test-First
 Lógica nova MUST nascer com teste (`*.test.ts` co-locado ou em `__tests__/`), executado via
@@ -41,7 +43,7 @@ documentam o comportamento esperado.
 
 ### V. Funções Puras e Efeitos Isolados
 Preferir funções puras e sem efeitos colaterais na camada de serviço; efeitos (I/O, chamadas
-de rede, banco de dados) MUST ficar isolados em adaptadores. Erros de domínio usam classes
+de rede, banco de dados) MUST ficar isolados em adaptadores e stores. Erros de domínio usam classes
 próprias (`AppError`, `NotFoundError`, etc.) e são traduzidos para HTTP apenas no middleware
 de erro do Express, na borda. **Racional**: lógica pura é mais fácil de testar e raciocinar;
 isolar efeitos limita o raio de impacto de mudanças externas.
@@ -49,29 +51,30 @@ isolar efeitos limita o raio de impacto de mudanças externas.
 ### VI. Gestão de Secrets (NON-NEGOTIABLE)
 `.env` MUST NUNCA ser commitado. Variáveis sensíveis MUST NUNCA ser lidas ou impressas
 diretamente no terminal. Uso de variáveis de ambiente MUST passar por `--env-file=.env`
-(mecanismo nativo do Node). **Racional**: vazamento de credenciais é um risco crítico e
-irreversível; a disciplina de nunca expor secrets no terminal ou em commits é inegociável.
+(mecanismo nativo do Node 22). `git push` exige aprovação manual — não está na allow list
+do agente. **Racional**: vazamento de credenciais é um risco crítico e irreversível; a
+disciplina de nunca expor secrets no terminal ou em commits é inegociável.
 
 ## Stack & Padrões Técnicos
 
 - **Runtime**: Node.js 22 LTS.
-- **Agente**: LangChain / LangGraph sobre OpenRouter.
+- **Agente**: LangChain / LangGraph sobre OpenRouter (`OPENROUTER_API_KEY`, `OPENROUTER_MODEL`).
 - **HTTP**: Express.
-- **Banco**: MySQL via Sequelize (`mysql2`).
-- **Validação**: Zod em toda fronteira HTTP/CLI.
+- **Banco / Persistência**: SQLite nativo via `node:sqlite` (`DatabaseSync`) com persistência em arquivo (`OPSPILOT_DB`, padrão `./data/opspilot.db`) ou `:memory:` em testes e benchmarks.
+- **Validação**: Zod em toda fronteira HTTP/CLI e schemas de ferramentas (tools).
 - **Testes**: `node:test` executado via `tsx`.
 - Comandos padrão: `npm run dev`, `npm run arena`, `npm run bench`, `npm test`,
-  `npm run typecheck`.
+  `npm run typecheck`, `npm run seed`.
 
 ## Fluxo de Desenvolvimento (Spec Kit)
 
-1. **Spec** — escrever `docs/specs/<feature>.md` versionado antes de codar.
-2. **Tipos** — definir interfaces/schemas Zod no modelo.
-3. **Serviço** — implementar lógica pura com testes.
-4. **Controller** — conectar Express + validação Zod de entrada.
+1. **Spec** — escrever `specs/<feature>/spec.md` versionado antes de codar.
+2. **Tipos** — definir interfaces/schemas Zod no modelo ou store.
+3. **Serviço/Store** — implementar lógica pura e adaptadores com testes.
+4. **Controller / Tools** — conectar Express / ferramentas do agente + validação Zod de entrada.
 5. **Review** — `typecheck` + `test` verdes → commit com mensagem convencional.
 
-Specs MUST ser versionadas em `docs/specs/` e referenciadas nos PRs.
+Specs MUST ser versionadas em `specs/` e referenciadas nos PRs.
 
 ## Governance
 
@@ -90,5 +93,4 @@ Todo PR/review MUST verificar conformidade com os princípios acima. Complexidad
 (camadas extras, dependências novas, exceções às regras de teste) MUST ser justificada
 explicitamente na descrição do PR.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): data de adoção original não
-registrada nos artefatos existentes do projeto | **Last Amended**: 2026-08-28
+**Version**: 1.2.0 | **Ratified**: 2026-08-28 | **Last Amended**: 2026-09-02

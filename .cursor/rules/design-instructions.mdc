@@ -1,0 +1,130 @@
+---
+description: Diretrizes de design system, hierarquia visual, espaçamento em escala, estados vazios e de erro, dark mode e acessibilidade para o frontend web.
+globs: web/**
+applyTo: "web/"
+---
+
+# Diretrizes de Design e Interface Web (`web/`)
+
+Diretrizes obrigatórias de UI/UX, acessibilidade (WCAG 2.1 AA), design tokens e arquitetura de componentes para qualquer código desenvolvido na pasta `web/`.
+
+---
+
+## 1. Hierarquia Visual e Tipografia
+
+- **Escaneabilidade:** Organize telas para escaneamento rápido (Z-pattern para páginas institucionais/login, F-pattern para dashboards e listagens).
+- **Escala de Fontes Semântica:**
+  - `display`: `2.25rem` (36px), line-height `1.2`, weight `700` — Destaques e métricas hero.
+  - `h1`: `1.875rem` (30px), line-height `1.25`, weight `700` — Título principal único por página.
+  - `h2`: `1.5rem` (24px), line-height `1.3`, weight `600` — Seções e títulos de modais.
+  - `h3`: `1.25rem` (20px), line-height `1.4`, weight `600` — Cards e cabeçalhos de grupos.
+  - `body`: `1rem` (16px), line-height `1.5`, weight `400/500` — Texto corrido e parágrafos.
+  - `body-sm`: `0.875rem` (14px), line-height `1.5`, weight `400/500` — Inputs, tabelas e dados secundários.
+  - `caption`: `0.75rem` (12px), line-height `1.4`, weight `500` — Badges, legendas e timestamps.
+- **Peso e Contraste:** Estabeleça contraste por peso tipográfico (`font-weight: 600/700`) e tamanho, não dependendo apenas de cor.
+
+---
+
+## 2. Espaçamento em Escala (Spacing Scale)
+
+Adote estritamente a escala base de 4px / 8px. Valores arbitrários fora da escala são proibidos:
+
+```css
+:root {
+  --space-1: 0.25rem; /*  4px */
+  --space-2: 0.5rem;  /*  8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-8: 2rem;    /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem;   /* 48px */
+  --space-16: 4rem;   /* 64px */
+}
+```
+
+- **Componentes atômicos (botões/inputs):** padding vertical `--space-2` (8px) a `--space-3` (12px); padding horizontal `--space-3` (12px) a `--space-4` (16px); gap `--space-2` (8px).
+- **Cards/Containers:** padding interno `--space-4` (16px) a `--space-6` (24px); gap entre itens `--space-3` (12px) a `--space-4` (16px).
+- **Espaçamento de Seções:** margem/gap entre blocos `--space-8` (32px) a `--space-12` (48px).
+
+---
+
+## 3. Estados Vazios (Empty States)
+
+Todo componente de listagem, tabela ou painel de dados deve possuir estado vazio tratado:
+
+1. **Ícone/Ilustração Temática:** Com `aria-hidden="true"`, sutil e contextual.
+2. **Título Direto:** Comunica o que não está presente (ex: *"Nenhum incidente encontrado"*).
+3. **Descrição Explicativa:** Esclarece a razão da ausência ou ensina a popular os dados.
+4. **Call to Action (CTA):** Botão para a próxima ação lógica (ex: *"Criar Registro"*, *"Limpar Filtros"*, *"Sincronizar"*).
+
+---
+
+## 4. Estados de Erro (Error States)
+
+- **Erros de Campo (Inline Validation):**
+  - Exibidos logo abaixo do input com cor `--color-error`.
+  - Associados via `aria-describedby="<id-do-erro>"` e campo com `aria-invalid="true"`.
+- **Falhas de Operação (Banners/Toasts):**
+  - Fornecer descrição humana e ação clara de recuperação (ex: botão *"Tentar novamente"*).
+  - Nunca expor traces técnicos internos ou erros genéricos sem contexto.
+- **Falha de Página (404/500/Offline):**
+  - Página dedicada com retorno seguro ao painel principal.
+
+---
+
+## 5. Dark Mode e Cores Semânticas
+
+Proibido hardcoding de cores hexadecimais em componentes. Use variáveis semânticas:
+
+```css
+:root {
+  --bg-canvas: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --border-subtle: #e2e8f0;
+  --color-primary: #2563eb;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-success: #16a34a;
+}
+
+[data-theme="dark"],
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-canvas: #090d16;
+    --bg-surface: #111827;
+    --bg-surface-raised: #1f2937;
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
+    --border-subtle: #1f2937;
+    --color-primary: #3b82f6;
+    --color-error: #ef4444;
+    --color-warning: #f59e0b;
+    --color-success: #22c55e;
+  }
+}
+```
+
+- **Superfícies Dark:** Evitar preto puro (`#000000`); preferir tons neutros profundos (ardósia/chumbo).
+- **Elevação:** Indicar profundidade no dark mode aumentando sutilmente a luminosidade do background da superfície ao invés de depender apenas de sombras.
+
+---
+
+## 6. Acessibilidade (WCAG 2.1 AA)
+
+- **Contraste Mínimo:** 4.5:1 para texto padrão e 3:1 para texto grande (≥18pt/≥14pt bold) e controles gráficos.
+- **Foco por Teclado:** Nunca desabilitar o foco sem substituto. Manter `:focus-visible` destacado:
+  ```css
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  ```
+- **Semântica HTML5:** Priorize `<button>`, `<a>`, `<nav>`, `<main>`, `<article>`, `<section>`, `<dialog>`.
+- **Formulários:** Todo campo deve ter `<label for="...">` ou `aria-label`.
+- **Live Regions:** Use `role="status"` ou `role="alert"` para atualizações dinâmicas na interface.
+- **Movimento Reduzido:** Respeitar `@media (prefers-reduced-motion: reduce)` suprimindo transições longas.

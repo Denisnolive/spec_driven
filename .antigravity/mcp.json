@@ -1,0 +1,13 @@
+{
+    "servers": {
+        "opspilot": {
+            "type": "stdio",
+            "command": "npm",
+            "args": [
+                "run",
+                "--silent",
+                "mcp"
+            ]
+        }
+    }
+}

@@ -1,0 +1,26 @@
+{
+  "github.copilot.chat.agent.runCommand.allowList": [
+    "npm run dev",
+    "npm run arena",
+    "npm run bench",
+    "npm run typecheck",
+    "npm test",
+    "npx tsc",
+    "node",
+    "git status",
+    "git diff",
+    "git add",
+    "git commit"
+  ],
+  "github.copilot.chat.agent.runCommand.denyList": [
+    "rm -rf",
+    "sudo",
+    "git push --force",
+    "git push -f",
+    "cat .env",
+    "type .env",
+    "Get-Content .env",
+    "echo .env",
+    "git push"
+  ]
+}
